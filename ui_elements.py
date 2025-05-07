@@ -103,6 +103,13 @@ def build_ui(root):
     files_btn.pack(side=tk.LEFT, padx=5)
     ToolTip(files_btn, "Open associated PDF and TXT files.")
 
+    # New Button to view all open (not done) cases
+    open_cases_btn = ttk.Button(
+        file_frame, text="View Open Cases", command=view_open_cases
+    )
+    open_cases_btn.pack(side=tk.LEFT, padx=5)
+    ToolTip(open_cases_btn, "Display a list of all cases not marked as done.")
+
     # Status / Progress Bar
     status_frame = ttk.Frame(root, padding=5)
     status_frame.pack(pady=5, fill=tk.X)
@@ -205,7 +212,3 @@ def start_app():
     )
     root.protocol("WM_DELETE_WINDOW", lambda: on_closing(root))
     root.mainloop()
-
-
-if __name__ == "__main__":
-    start_app()
