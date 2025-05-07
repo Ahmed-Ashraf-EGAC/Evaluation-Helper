@@ -1,8 +1,7 @@
 import os
 import tkinter as tk
 import webbrowser
-from tkinter import ttk  # use themed widgets
-from tkinter import messagebox, scrolledtext
+from tkinter import messagebox, scrolledtext, ttk
 
 import pandas as pd
 
@@ -15,6 +14,8 @@ TXT_FOLDER = "./txts"
 df = pd.read_excel(EXCEL_PATH)
 if "Notes" not in df.columns:
     df["Notes"] = ""
+if "Case Done" not in df.columns:
+    df["Case Done"] = ""
 
 case_ids = df["Case ID"].tolist()
 current_index = 0
@@ -24,11 +25,15 @@ unsaved_changes = False
 root = tk.Tk()
 root.title("Case Reviewer")
 root.geometry("700x550")  # Updated window size
+root.configure(bg="SystemButtonFace")
 
 style = ttk.Style(root)
 default_theme = "clam"
 style.theme_use(default_theme)
-root.configure(bg="SystemButtonFace")  # default background for non-ttk widgets
+
+# === Global Variables for "Case Done" and Progress ===
+case_done_var = tk.IntVar(master=root)  # For the "Case Done" checkbox
+progress_var = tk.IntVar(master=root)
 
 
 # Create a dark theme if it doesn't already exist.
@@ -104,7 +109,7 @@ def load_case(index):
 
     row = df.loc[df["Case ID"] == case_id].iloc[0]
     for col in df.columns:
-        if col in ["Case ID", "Notes"]:
+        if col in ["Case ID", "Notes", "Case Done"]:
             continue
         checkbox_vars[col].set(int(row[col] == 1))
     notes_val = row.get("Notes", "")
@@ -112,19 +117,25 @@ def load_case(index):
         notes_val = ""
     notes_text.delete("1.0", tk.END)
     notes_text.insert(tk.END, str(notes_val))
+    # Load the "Case Done" status.
+    case_done_val = row.get("Case Done", "")
+    case_done_var.set(int(case_done_val == 1))
 
 
 def save_case():
     global unsaved_changes
     case_id = case_ids[current_index]
     for col in df.columns:
-        if col in ["Case ID", "Notes"]:
+        if col in ["Case ID", "Notes", "Case Done"]:
             continue
         df.loc[df["Case ID"] == case_id, col] = 1 if checkbox_vars[col].get() else ""
     df.loc[df["Case ID"] == case_id, "Notes"] = notes_text.get("1.0", tk.END).strip()
+    # Update "Case Done" status.
+    df.loc[df["Case ID"] == case_id, "Case Done"] = 1 if case_done_var.get() else ""
     df.to_excel(EXCEL_PATH, index=False)
     unsaved_changes = False
     messagebox.showinfo("Saved", f"Saved changes for Case ID: {case_id}")
+    update_progress()  # Refresh status bar.
 
 
 def next_case():
@@ -212,6 +223,15 @@ def on_closing():
         root.destroy()
 
 
+def update_progress():
+    # Calculate how many cases are marked done.
+    done_count = (df["Case Done"] == 1).sum()
+    total = len(df)
+    progress_bar["maximum"] = total
+    progress_bar["value"] = done_count
+    status_label.config(text=f"Cases Done: {done_count} / {total}")
+
+
 # === GUI Layout ===
 
 # Top frame containing the case label and theme selector
@@ -251,16 +271,37 @@ file_frame = ttk.Frame(root, padding=5)
 file_frame.pack(pady=5)
 
 ttk.Button(file_frame, text="Open Files", command=open_files).pack(side=tk.LEFT, padx=5)
+
+# --- GUI Layout Additions ---
+
+# Add a Status/Progress Bar at the bottom.
+status_frame = ttk.Frame(root, padding=5)
+status_frame.pack(pady=5, fill=tk.X)
+progress_bar = ttk.Progressbar(status_frame, orient="horizontal", mode="determinate")
+progress_bar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+status_label = ttk.Label(status_frame, text=f"Cases Done: 0 / {df.shape[0]}")
+status_label.pack(side=tk.LEFT)
+
+# After the File Buttons section, add a frame for the "Case Done" checkbox.
+case_done_frame = ttk.Frame(root, padding=5)
+case_done_frame.pack(pady=5)
+ttk.Label(case_done_frame, text="Mark as Done:").pack(side=tk.LEFT, padx=(0, 5))
+# "Case Done" Checkbox
+case_done_checkbox = ttk.Checkbutton(case_done_frame, variable=case_done_var)
+case_done_checkbox.pack(side=tk.LEFT)
+
 # Checkboxes grid
 checkbox_frame = ttk.Frame(root, padding=10)
 checkbox_frame.pack(pady=10)
 
 columns = [col for col in df.columns if col not in ["Case ID", "Notes"]]
 for i, col in enumerate(columns):
+    if col == "Case Done":  # Skip the "Case Done" checkbox.
+        continue
     var = tk.IntVar()
     var.trace_add("write", mark_unsaved)  # Mark unsaved when changed.
     cb = ttk.Checkbutton(checkbox_frame, text=col, variable=var)
-    cb.grid(row=i // 3, column=i % 3, sticky="w", padx=10, pady=3)
+    cb.grid(row=i // 3, column=i % 3, sticky="w", padx=15, pady=4)
     checkbox_vars[col] = var
     checkbox_widgets[col] = cb
 
