@@ -153,13 +153,16 @@ def build_ui(root):
     notes_frame.pack(pady=10, fill=tk.BOTH, expand=True)
     ttk.Label(notes_frame, text="Notes:").pack(anchor="w")
     notes_text = scrolledtext.ScrolledText(
-        notes_frame, wrap=tk.WORD, width=60, height=5
+        notes_frame, wrap=tk.WORD, width=60, height=5, undo=True
     )
     notes_text.pack(fill=tk.BOTH, expand=True)
     if theme_combobox.get() == "dark":
         notes_text.configure(bg="#3e3e3e", fg="#ffffff", insertbackground="#ffffff")
     else:
         notes_text.configure(bg="white", fg="black", insertbackground="black")
+    # Bind Ctrl+Z for undo and Ctrl+Y for redo
+    notes_text.bind("<Control-z>", lambda event: notes_text.edit_undo())
+    notes_text.bind("<Control-y>", lambda event: notes_text.edit_redo())
     notes_text.bind("<<Modified>>", lambda event: on_notes_modified(event, notes_text))
 
     # Keyboard Shortcuts
