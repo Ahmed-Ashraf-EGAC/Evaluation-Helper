@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
 import webbrowser
+from tkinter import ttk  # use themed widgets
 from tkinter import messagebox, scrolledtext
 
 import pandas as pd
@@ -21,9 +22,23 @@ current_index = 0
 # === GUI Setup ===
 root = tk.Tk()
 root.title("Case Reviewer")
+root.geometry("700x550")  # Updated window size
+
+style = ttk.Style(root)
+default_theme = "clam"
+style.theme_use(default_theme)
 
 checkbox_vars = {}
 checkbox_widgets = {}
+
+
+# Function to change theme using the combobox selection
+def change_theme(event):
+    selected_theme = theme_combobox.get()
+    try:
+        style.theme_use(selected_theme)
+    except tk.TclError:
+        messagebox.showerror("Error", f"Theme '{selected_theme}' not found.")
 
 
 # === Functions ===
@@ -99,66 +114,67 @@ def open_txt():
 
 # === GUI Layout ===
 
-# Case label
-top_frame = tk.Frame(root)
-top_frame.pack(pady=10)
+# Top frame containing the case label and theme selector
+top_frame = ttk.Frame(root, padding=10)
+top_frame.pack(pady=10, fill=tk.X)
 
 case_label_var = tk.StringVar()
-case_label = tk.Label(top_frame, textvariable=case_label_var, font=("Arial", 14))
-case_label.pack()
+case_label = ttk.Label(top_frame, textvariable=case_label_var, font=("Arial", 14))
+case_label.pack(side=tk.LEFT, padx=(0, 20))
 
-# Navigation
-nav_frame = tk.Frame(root)
+# Theme Selection
+theme_label = ttk.Label(top_frame, text="Theme:")
+theme_label.pack(side=tk.LEFT)
+theme_options = ["clam", "alt", "default", "classic"]
+theme_combobox = ttk.Combobox(top_frame, values=theme_options, width=10)
+theme_combobox.set(default_theme)
+theme_combobox.pack(side=tk.LEFT, padx=5)
+theme_combobox.bind("<<ComboboxSelected>>", change_theme)
+
+# Navigation Frame
+nav_frame = ttk.Frame(root, padding=5)
 nav_frame.pack(pady=5)
 
-tk.Button(nav_frame, text="<< Previous", command=prev_case).pack(side=tk.LEFT, padx=5)
-tk.Button(nav_frame, text="Next >>", command=next_case).pack(side=tk.LEFT, padx=5)
+ttk.Button(nav_frame, text="<< Previous", command=prev_case).pack(side=tk.LEFT, padx=5)
+ttk.Button(nav_frame, text="Next >>", command=next_case).pack(side=tk.LEFT, padx=5)
 
-jump_frame = tk.Frame(root)
+# Jump To Case
+jump_frame = ttk.Frame(root, padding=5)
 jump_frame.pack(pady=5)
 
-jump_entry = tk.Entry(jump_frame, width=10)
-jump_entry.pack(side=tk.LEFT)
-tk.Button(jump_frame, text="Jump to Case ID", command=jump_to_case).pack(
-    side=tk.LEFT, padx=5
-)
+jump_entry = ttk.Entry(jump_frame, width=10)
+jump_entry.pack(side=tk.LEFT, padx=(0, 5))
+ttk.Button(jump_frame, text="Jump to Case ID", command=jump_to_case).pack(side=tk.LEFT)
 
-file_frame = tk.Frame(root)
+# File Buttons
+file_frame = ttk.Frame(root, padding=5)
 file_frame.pack(pady=5)
 
-tk.Button(file_frame, text="Open PDF", command=open_pdf).pack(side=tk.LEFT, padx=5)
-tk.Button(file_frame, text="Open TXT", command=open_txt).pack(side=tk.LEFT, padx=5)
+ttk.Button(file_frame, text="Open PDF", command=open_pdf).pack(side=tk.LEFT, padx=5)
+ttk.Button(file_frame, text="Open TXT", command=open_txt).pack(side=tk.LEFT, padx=5)
 
 # Checkboxes grid
-checkbox_frame = tk.Frame(root)
+checkbox_frame = ttk.Frame(root, padding=10)
 checkbox_frame.pack(pady=10)
 
 columns = [col for col in df.columns if col not in ["Case ID", "Notes"]]
-
 for i, col in enumerate(columns):
     var = tk.IntVar()
-    cb = tk.Checkbutton(checkbox_frame, text=col, variable=var)
-    # Place checkboxes in 3 columns
-    cb.grid(
-        row=i // 3,
-        column=i % 3,
-        sticky="w",
-        padx=10,
-        pady=3,
-    )
+    cb = ttk.Checkbutton(checkbox_frame, text=col, variable=var)
+    cb.grid(row=i // 3, column=i % 3, sticky="w", padx=10, pady=3)
     checkbox_vars[col] = var
     checkbox_widgets[col] = cb
 
 # Notes area
-notes_frame = tk.Frame(root)
-notes_frame.pack(pady=10)
+notes_frame = ttk.Frame(root, padding=10)
+notes_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 
-tk.Label(notes_frame, text="Notes:").pack(anchor="w")
+ttk.Label(notes_frame, text="Notes:").pack(anchor="w")
 notes_text = scrolledtext.ScrolledText(notes_frame, wrap=tk.WORD, width=60, height=5)
-notes_text.pack()
+notes_text.pack(fill=tk.BOTH, expand=True)
 
-# Save button
-save_button = tk.Button(root, text="Save", command=save_case, bg="lightgreen", width=20)
+# Save Button
+save_button = ttk.Button(root, text="Save", command=save_case)
 save_button.pack(pady=10)
 
 # === Start ===
