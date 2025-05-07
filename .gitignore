@@ -2,3 +2,5 @@ pdfs/*
 txts/*
 *.xlsx
 .qodo
+__pycache__/*
+config.json
