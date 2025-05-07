@@ -18,6 +18,7 @@ if "Notes" not in df.columns:
 
 case_ids = df["Case ID"].tolist()
 current_index = 0
+unsaved_changes = False
 
 # === GUI Setup ===
 root = tk.Tk()
@@ -93,10 +94,11 @@ def change_theme(event):
 
 # === Functions ===
 def load_case(index):
-    global current_index
+    global current_index, unsaved_changes
     if index < 0 or index >= len(case_ids):
         return
     current_index = index
+    unsaved_changes = False
     case_id = case_ids[current_index]
     case_label_var.set(f"Case ID: {case_id}")
 
@@ -104,10 +106,7 @@ def load_case(index):
     for col in df.columns:
         if col in ["Case ID", "Notes"]:
             continue
-        val = row[col]
-        checkbox_vars[col].set(int(val == 1))
-
-    # Ensure notes is empty if NaN
+        checkbox_vars[col].set(int(row[col] == 1))
     notes_val = row.get("Notes", "")
     if pd.isna(notes_val) or str(notes_val).lower() == "nan":
         notes_val = ""
@@ -116,6 +115,7 @@ def load_case(index):
 
 
 def save_case():
+    global unsaved_changes
     case_id = case_ids[current_index]
     for col in df.columns:
         if col in ["Case ID", "Notes"]:
@@ -123,23 +123,24 @@ def save_case():
         df.loc[df["Case ID"] == case_id, col] = 1 if checkbox_vars[col].get() else ""
     df.loc[df["Case ID"] == case_id, "Notes"] = notes_text.get("1.0", tk.END).strip()
     df.to_excel(EXCEL_PATH, index=False)
+    unsaved_changes = False
     messagebox.showinfo("Saved", f"Saved changes for Case ID: {case_id}")
 
 
 def next_case():
-    if current_index + 1 < len(case_ids):
+    if current_index + 1 < len(case_ids) and check_unsaved():
         load_case(current_index + 1)
 
 
 def prev_case():
-    if current_index - 1 >= 0:
+    if current_index - 1 >= 0 and check_unsaved():
         load_case(current_index - 1)
 
 
 def jump_to_case():
     try:
         target_id = int(jump_entry.get())
-        if target_id in case_ids:
+        if target_id in case_ids and check_unsaved():
             index = case_ids.index(target_id)
             load_case(index)
         else:
@@ -174,6 +175,41 @@ def open_files():
             messagebox.showwarning(
                 "File Missing", f"{missing[0]} file is missing for Case ID {case_id}"
             )
+
+
+# Helper to mark changes as unsaved.
+def mark_unsaved(*args):
+    global unsaved_changes
+    unsaved_changes = True
+
+
+# Bind the text widget modification event.
+def on_notes_modified(event):
+    global unsaved_changes
+    unsaved_changes = True
+    # Reset modified flag so that the event fires again.
+    notes_text.edit_modified(False)
+
+
+# Wrap navigation functions to check for unsaved changes.
+def check_unsaved():
+    global unsaved_changes
+    if unsaved_changes:
+        result = messagebox.askyesnocancel(
+            "Unsaved Changes", "You have unsaved changes. Would you like to save them?"
+        )
+        if result is None:  # Cancelled
+            return False
+        elif result:  # Yes, save changes.
+            save_case()
+    # Either there were no unsaved changes or user opted not to save.
+    return True
+
+
+# Override window close to warn about unsaved changes.
+def on_closing():
+    if check_unsaved():
+        root.destroy()
 
 
 # === GUI Layout ===
@@ -222,6 +258,7 @@ checkbox_frame.pack(pady=10)
 columns = [col for col in df.columns if col not in ["Case ID", "Notes"]]
 for i, col in enumerate(columns):
     var = tk.IntVar()
+    var.trace_add("write", mark_unsaved)  # Mark unsaved when changed.
     cb = ttk.Checkbutton(checkbox_frame, text=col, variable=var)
     cb.grid(row=i // 3, column=i % 3, sticky="w", padx=10, pady=3)
     checkbox_vars[col] = var
@@ -240,6 +277,9 @@ if default_theme == "dark":
 else:
     notes_text.configure(bg="white", fg="black", insertbackground="black")
 
+# Bind the <<Modified>> event to the notes text widget.
+notes_text.bind("<<Modified>>", on_notes_modified)
+
 # Save Button
 save_button = ttk.Button(root, text="Save", command=save_case)
 save_button.pack(pady=10)
@@ -248,6 +288,9 @@ save_button.pack(pady=10)
 root.bind("<Left>", lambda event: prev_case())
 root.bind("<Right>", lambda event: next_case())
 root.bind("<Control-s>", lambda event: save_case())
+
+# Attach WM_DELETE_WINDOW protocol to warn on closing.
+root.protocol("WM_DELETE_WINDOW", on_closing)
 
 # === Start ===
 load_case(current_index)
