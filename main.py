@@ -21,6 +21,9 @@ case_ids = df["Case ID"].tolist()
 current_index = 0
 unsaved_changes = False
 
+# At the top, add a global flag for unsaved warning:
+unsaved_warning = True
+
 # === GUI Setup ===
 root = tk.Tk()
 root.title("Case Reviewer")
@@ -205,7 +208,7 @@ def on_notes_modified(event):
 # Wrap navigation functions to check for unsaved changes.
 def check_unsaved():
     global unsaved_changes
-    if unsaved_changes:
+    if unsaved_changes and unsaved_warning:
         result = messagebox.askyesnocancel(
             "Unsaved Changes", "You have unsaved changes. Would you like to save them?"
         )
@@ -238,6 +241,84 @@ def copy_case_id(event):
     root.clipboard_clear()
     root.clipboard_append(case_id_text)
     # messagebox.showinfo("Copied", f"Case ID {case_id_text} copied to clipboard")
+
+
+# --- Settings Dialog ---
+def open_settings():
+    settings = tk.Toplevel(root)
+    settings.title("Settings")
+    settings.grab_set()  # Make the dialog modal
+
+    # Excel Path
+    tk.Label(settings, text="Excel Path:").grid(
+        row=0, column=0, sticky="w", padx=5, pady=5
+    )
+    excel_path_var = tk.StringVar(value=EXCEL_PATH)
+    tk.Entry(settings, textvariable=excel_path_var, width=40).grid(
+        row=0, column=1, padx=5, pady=5
+    )
+
+    # PDF Folder
+    tk.Label(settings, text="PDF Folder:").grid(
+        row=1, column=0, sticky="w", padx=5, pady=5
+    )
+    pdf_folder_var = tk.StringVar(value=PDF_FOLDER)
+    tk.Entry(settings, textvariable=pdf_folder_var, width=40).grid(
+        row=1, column=1, padx=5, pady=5
+    )
+
+    # TXT Folder
+    tk.Label(settings, text="TXT Folder:").grid(
+        row=2, column=0, sticky="w", padx=5, pady=5
+    )
+    txt_folder_var = tk.StringVar(value=TXT_FOLDER)
+    tk.Entry(settings, textvariable=txt_folder_var, width=40).grid(
+        row=2, column=1, padx=5, pady=5
+    )
+
+    # Unsaved Changes Warning Option
+    unsaved_warning_var = tk.BooleanVar(value=unsaved_warning)
+    tk.Checkbutton(
+        settings, text="Enable Unsaved Changes Warning", variable=unsaved_warning_var
+    ).grid(row=3, column=0, columnspan=2, padx=5, pady=5)
+
+    # Theme Selection
+    tk.Label(settings, text="Default Theme:").grid(
+        row=4, column=0, sticky="w", padx=5, pady=5
+    )
+    theme_var = tk.StringVar(value=default_theme)
+    ttk.Combobox(
+        settings,
+        textvariable=theme_var,
+        values=["clam", "alt", "default", "classic", "dark"],
+        width=10,
+    ).grid(row=4, column=1, padx=5, pady=5)
+
+    def save_settings():
+        global EXCEL_PATH, PDF_FOLDER, TXT_FOLDER, unsaved_warning, default_theme
+        EXCEL_PATH = excel_path_var.get()
+        PDF_FOLDER = pdf_folder_var.get()
+        TXT_FOLDER = txt_folder_var.get()
+        unsaved_warning = unsaved_warning_var.get()
+        default_theme = theme_var.get()
+        theme_combobox.set(default_theme)
+        change_theme(None)  # update theme based on default_theme
+        settings.destroy()
+        messagebox.showinfo(
+            "Settings", "Settings updated. Please restart the application if necessary."
+        )
+
+    tk.Button(settings, text="Save Settings", command=save_settings).grid(
+        row=5, column=0, columnspan=2, pady=10
+    )
+
+
+# Add an Options menu to open the settings dialog.
+menubar = tk.Menu(root)
+options_menu = tk.Menu(menubar, tearoff=0)
+options_menu.add_command(label="Settings", command=open_settings)
+menubar.add_cascade(label="Options", menu=options_menu)
+root.config(menu=menubar)
 
 # === GUI Layout ===
 
