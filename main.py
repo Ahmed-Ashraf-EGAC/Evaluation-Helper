@@ -244,6 +244,11 @@ else:
 save_button = ttk.Button(root, text="Save", command=save_case)
 save_button.pack(pady=10)
 
+# --- Keyboard Shortcuts ---
+root.bind("<Left>", lambda event: prev_case())
+root.bind("<Right>", lambda event: next_case())
+root.bind("<Control-s>", lambda event: save_case())
+
 # === Start ===
 load_case(current_index)
 root.mainloop()
