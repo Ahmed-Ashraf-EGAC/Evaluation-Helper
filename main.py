@@ -148,22 +148,32 @@ def jump_to_case():
         messagebox.showerror("Error", "Invalid Case ID.")
 
 
-def open_pdf():
+def open_files():
+    missing = []
     case_id = case_ids[current_index]
-    path = os.path.join(PDF_FOLDER, f"case_{case_id}.pdf")
-    if os.path.exists(path):
-        webbrowser.open(path)
-    else:
-        messagebox.showerror("File Not Found", f"No PDF found for Case ID {case_id}")
+    pdf_path = os.path.join(PDF_FOLDER, f"case_{case_id}.pdf")
+    txt_path = os.path.join(TXT_FOLDER, f"case_{case_id}.txt")
 
-
-def open_txt():
-    case_id = case_ids[current_index]
-    path = os.path.join(TXT_FOLDER, f"case_{case_id}.txt")
-    if os.path.exists(path):
-        webbrowser.open(path)
+    if os.path.exists(pdf_path):
+        webbrowser.open(pdf_path)
     else:
-        messagebox.showerror("File Not Found", f"No TXT found for Case ID {case_id}")
+        missing.append("PDF")
+
+    if os.path.exists(txt_path):
+        webbrowser.open(txt_path)
+    else:
+        missing.append("TXT")
+
+    if missing:
+        if len(missing) == 2:
+            messagebox.showerror(
+                "File(s) Not Found",
+                f"Both PDF and TXT files are missing for Case ID {case_id}",
+            )
+        else:
+            messagebox.showwarning(
+                "File Missing", f"{missing[0]} file is missing for Case ID {case_id}"
+            )
 
 
 # === GUI Layout ===
@@ -204,9 +214,7 @@ ttk.Button(jump_frame, text="Jump to Case ID", command=jump_to_case).pack(side=t
 file_frame = ttk.Frame(root, padding=5)
 file_frame.pack(pady=5)
 
-ttk.Button(file_frame, text="Open PDF", command=open_pdf).pack(side=tk.LEFT, padx=5)
-ttk.Button(file_frame, text="Open TXT", command=open_txt).pack(side=tk.LEFT, padx=5)
-
+ttk.Button(file_frame, text="Open Files", command=open_files).pack(side=tk.LEFT, padx=5)
 # Checkboxes grid
 checkbox_frame = ttk.Frame(root, padding=10)
 checkbox_frame.pack(pady=10)
