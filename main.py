@@ -27,16 +27,66 @@ root.geometry("700x550")  # Updated window size
 style = ttk.Style(root)
 default_theme = "clam"
 style.theme_use(default_theme)
+root.configure(bg="SystemButtonFace")  # default background for non-ttk widgets
+
+
+# Create a dark theme if it doesn't already exist.
+def create_dark_theme():
+    try:
+        style.theme_create(
+            "dark",
+            parent="clam",
+            settings={
+                ".": {"configure": {"background": "#2e2e2e", "foreground": "#ffffff"}},
+                "TButton": {
+                    "configure": {
+                        "padding": 5,
+                        "background": "#3e3e3e",
+                        "foreground": "#ffffff",
+                    }
+                },
+                "TLabel": {
+                    "configure": {"background": "#2e2e2e", "foreground": "#ffffff"}
+                },
+                "TFrame": {"configure": {"background": "#2e2e2e"}},
+                "TEntry": {
+                    "configure": {"fieldbackground": "#3e3e3e", "foreground": "#ffffff"}
+                },
+                "TCombobox": {
+                    "configure": {"fieldbackground": "#3e3e3e", "foreground": "#ffffff"}
+                },
+            },
+        )
+    except tk.TclError:
+        # Theme already exists
+        pass
+
+
+create_dark_theme()
 
 checkbox_vars = {}
 checkbox_widgets = {}
 
+# We'll later reference this widget to update its background color.
+notes_text = None
 
-# Function to change theme using the combobox selection
+
+# Function to change theme using the combobox selection.
 def change_theme(event):
     selected_theme = theme_combobox.get()
     try:
-        style.theme_use(selected_theme)
+        if selected_theme == "dark":
+            style.theme_use("dark")
+            root.configure(bg="#2e2e2e")
+            if notes_text is not None:
+                notes_text.configure(
+                    bg="#3e3e3e", fg="#ffffff", insertbackground="#ffffff"
+                )
+        else:
+            style.theme_use(selected_theme)
+            root.configure(bg="SystemButtonFace")
+            if notes_text is not None:
+                notes_text.configure(bg="white", fg="black", insertbackground="black")
     except tk.TclError:
         messagebox.showerror("Error", f"Theme '{selected_theme}' not found.")
 
@@ -57,8 +107,12 @@ def load_case(index):
         val = row[col]
         checkbox_vars[col].set(int(val == 1))
 
+    # Ensure notes is empty if NaN
+    notes_val = row.get("Notes", "")
+    if pd.isna(notes_val) or str(notes_val).lower() == "nan":
+        notes_val = ""
     notes_text.delete("1.0", tk.END)
-    notes_text.insert(tk.END, str(row.get("Notes", "")))
+    notes_text.insert(tk.END, str(notes_val))
 
 
 def save_case():
@@ -125,7 +179,7 @@ case_label.pack(side=tk.LEFT, padx=(0, 20))
 # Theme Selection
 theme_label = ttk.Label(top_frame, text="Theme:")
 theme_label.pack(side=tk.LEFT)
-theme_options = ["clam", "alt", "default", "classic"]
+theme_options = ["clam", "alt", "default", "classic", "dark"]
 theme_combobox = ttk.Combobox(top_frame, values=theme_options, width=10)
 theme_combobox.set(default_theme)
 theme_combobox.pack(side=tk.LEFT, padx=5)
@@ -172,6 +226,11 @@ notes_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 ttk.Label(notes_frame, text="Notes:").pack(anchor="w")
 notes_text = scrolledtext.ScrolledText(notes_frame, wrap=tk.WORD, width=60, height=5)
 notes_text.pack(fill=tk.BOTH, expand=True)
+# Initially set the background based on the default theme.
+if default_theme == "dark":
+    notes_text.configure(bg="#3e3e3e", fg="#ffffff", insertbackground="#ffffff")
+else:
+    notes_text.configure(bg="white", fg="black", insertbackground="black")
 
 # Save Button
 save_button = ttk.Button(root, text="Save", command=save_case)
