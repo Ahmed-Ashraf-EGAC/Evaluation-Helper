@@ -327,4 +327,16 @@ def view_open_cases():
                 )
                 window.destroy()
 
+    def on_case_double_click(event):
+        selection = listbox.curselection()
+        if selection:
+            idx = selection[0]
+            selected_case_id = listbox.get(idx)
+            window.clipboard_clear()
+            window.clipboard_append(str(selected_case_id))
+            messagebox.showinfo(
+                "Copied", f"Case ID {selected_case_id} copied to clipboard!"
+            )
+
     listbox.bind("<<ListboxSelect>>", on_case_select)
+    listbox.bind("<Double-Button-1>", on_case_double_click)
