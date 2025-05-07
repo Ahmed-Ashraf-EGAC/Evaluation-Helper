@@ -232,6 +232,13 @@ def update_progress():
     status_label.config(text=f"Cases Done: {done_count} / {total}")
 
 
+def copy_case_id(event):
+    # Remove the "Case ID: " prefix and copy the raw ID.
+    case_id_text = case_label_var.get().replace("Case ID: ", "")
+    root.clipboard_clear()
+    root.clipboard_append(case_id_text)
+    # messagebox.showinfo("Copied", f"Case ID {case_id_text} copied to clipboard")
+
 # === GUI Layout ===
 
 # Top frame containing the case label and theme selector
@@ -241,6 +248,7 @@ top_frame.pack(pady=10, fill=tk.X)
 case_label_var = tk.StringVar()
 case_label = ttk.Label(top_frame, textvariable=case_label_var, font=("Arial", 14))
 case_label.pack(side=tk.LEFT, padx=(0, 20))
+case_label.bind("<Button-1>", copy_case_id)
 
 # Theme Selection
 theme_label = ttk.Label(top_frame, text="Theme:")
@@ -285,10 +293,21 @@ status_label.pack(side=tk.LEFT)
 # After the File Buttons section, add a frame for the "Case Done" checkbox.
 case_done_frame = ttk.Frame(root, padding=5)
 case_done_frame.pack(pady=5)
-ttk.Label(case_done_frame, text="Mark as Done:").pack(side=tk.LEFT, padx=(0, 5))
+
+# Frame to hold both Case Done checkbox and Save button
+bottom_controls_frame = ttk.Frame(root)
+bottom_controls_frame.pack(pady=10)
+
 # "Case Done" Checkbox
-case_done_checkbox = ttk.Checkbutton(case_done_frame, variable=case_done_var)
-case_done_checkbox.pack(side=tk.LEFT)
+case_done_checkbox = ttk.Checkbutton(
+    bottom_controls_frame, text="Case Done", variable=case_done_var
+)
+case_done_checkbox.pack(side=tk.LEFT, padx=10)
+
+# Save Button
+save_button = ttk.Button(bottom_controls_frame, text="Save", command=save_case)
+save_button.pack(side=tk.LEFT, padx=10)
+
 
 # Checkboxes grid
 checkbox_frame = ttk.Frame(root, padding=10)
@@ -296,14 +315,26 @@ checkbox_frame.pack(pady=10)
 
 columns = [col for col in df.columns if col not in ["Case ID", "Notes"]]
 for i, col in enumerate(columns):
-    if col == "Case Done":  # Skip the "Case Done" checkbox.
+    if col == "Case Done":
         continue
     var = tk.IntVar()
-    var.trace_add("write", mark_unsaved)  # Mark unsaved when changed.
-    cb = ttk.Checkbutton(checkbox_frame, text=col, variable=var)
-    cb.grid(row=i // 3, column=i % 3, sticky="w", padx=15, pady=4)
+    var.trace_add("write", mark_unsaved)
+
+    # Create a frame to wrap the checkbutton
+    wrapper = ttk.Frame(checkbox_frame, padding=5)
+    wrapper.grid(row=i // 3, column=i % 3, sticky="w", padx=10, pady=4)
+
+    cb = ttk.Checkbutton(wrapper, text=col, variable=var)
+    cb.pack(anchor="w")  # Pack inside the frame
     checkbox_vars[col] = var
     checkbox_widgets[col] = cb
+
+    # Make the frame clickable as well
+    def toggle_cb(event, v=var):
+        v.set(0 if v.get() else 1)
+
+    wrapper.bind("<Button-1>", toggle_cb)
+    cb.bind("<Button-1>", lambda e: None)  # Prevent double toggle on checkbox itself
 
 # Notes area
 notes_frame = ttk.Frame(root, padding=10)
@@ -320,10 +351,6 @@ else:
 
 # Bind the <<Modified>> event to the notes text widget.
 notes_text.bind("<<Modified>>", on_notes_modified)
-
-# Save Button
-save_button = ttk.Button(root, text="Save", command=save_case)
-save_button.pack(pady=10)
 
 # --- Keyboard Shortcuts ---
 root.bind("<Left>", lambda event: prev_case())
