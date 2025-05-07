@@ -5,6 +5,58 @@ from tkinter import messagebox, scrolledtext, ttk
 
 import pandas as pd
 
+
+# Add this utility class near the top (after your imports)
+class ToolTip:
+    def __init__(self, widget, text, delay=500):
+        self.widget = widget
+        self.text = text
+        self.delay = delay
+        self.tipwindow = None
+        self.id = None
+        widget.bind("<Enter>", self.enter)
+        widget.bind("<Leave>", self.leave)
+
+    def enter(self, event=None):
+        self.schedule()
+
+    def leave(self, event=None):
+        self.unschedule()
+        self.hidetip()
+
+    def schedule(self):
+        self.id = self.widget.after(self.delay, self.showtip)
+
+    def unschedule(self):
+        if self.id:
+            self.widget.after_cancel(self.id)
+            self.id = None
+
+    def showtip(self):
+        if self.tipwindow or not self.text:
+            return
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 1
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        label = tk.Label(
+            tw,
+            text=self.text,
+            background="yellow",
+            relief="solid",
+            borderwidth=1,
+            font=("tahoma", "8", "normal"),
+        )
+        label.pack(ipadx=1)
+
+    def hidetip(self):
+        tw = self.tipwindow
+        self.tipwindow = None
+        if tw:
+            tw.destroy()
+
+
 # === Configuration ===
 EXCEL_PATH = "cases_review_ashraf.xlsx"
 PDF_FOLDER = "./pdfs"
@@ -344,22 +396,33 @@ theme_combobox.bind("<<ComboboxSelected>>", change_theme)
 nav_frame = ttk.Frame(root, padding=5)
 nav_frame.pack(pady=5)
 
-ttk.Button(nav_frame, text="<< Previous", command=prev_case).pack(side=tk.LEFT, padx=5)
-ttk.Button(nav_frame, text="Next >>", command=next_case).pack(side=tk.LEFT, padx=5)
+# After creating the navigation buttons:
+prev_btn = ttk.Button(nav_frame, text="<< Previous", command=prev_case)
+prev_btn.pack(side=tk.LEFT, padx=5)
+ToolTip(prev_btn, "Go to the previous case.")
 
-# Jump To Case
+next_btn = ttk.Button(nav_frame, text="Next >>", command=next_case)
+next_btn.pack(side=tk.LEFT, padx=5)
+ToolTip(next_btn, "Go to the next case.")
+
 jump_frame = ttk.Frame(root, padding=5)
 jump_frame.pack(pady=5)
 
 jump_entry = ttk.Entry(jump_frame, width=10)
 jump_entry.pack(side=tk.LEFT, padx=(0, 5))
-ttk.Button(jump_frame, text="Jump to Case ID", command=jump_to_case).pack(side=tk.LEFT)
+
+jump_btn = ttk.Button(jump_frame, text="Jump to Case ID", command=jump_to_case)
+jump_btn.pack(side=tk.LEFT)
+ToolTip(jump_btn, "Jump to a specific Case ID.")
 
 # File Buttons
 file_frame = ttk.Frame(root, padding=5)
 file_frame.pack(pady=5)
 
-ttk.Button(file_frame, text="Open Files", command=open_files).pack(side=tk.LEFT, padx=5)
+# For the File button:
+files_btn = ttk.Button(file_frame, text="Open Files", command=open_files)
+files_btn.pack(side=tk.LEFT, padx=5)
+ToolTip(files_btn, "Open associated PDF and TXT files.")
 
 # --- GUI Layout Additions ---
 
@@ -389,6 +452,11 @@ case_done_checkbox.pack(side=tk.LEFT, padx=10)
 save_button = ttk.Button(bottom_controls_frame, text="Save", command=save_case)
 save_button.pack(side=tk.LEFT, padx=10)
 
+# For the Save button:
+ToolTip(save_button, "Save current case edits.")
+
+# For the case label, which copies the case ID when clicked:
+ToolTip(case_label, "Click to copy the Case ID.")
 
 # Checkboxes grid
 checkbox_frame = ttk.Frame(root, padding=10)
