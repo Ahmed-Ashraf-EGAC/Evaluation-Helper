@@ -284,48 +284,81 @@ def open_settings(root, theme_combobox):
 
 
 def view_open_cases(case_label_var, notes_text, checkbox_vars, case_done_var):
-    """Display a popup listing all case IDs that are not marked done."""
+    """Display a popup listing all case IDs separated into Open and Unreviewed categories."""
     import tkinter as tk
     from tkinter import messagebox, ttk
 
-    # Filter the DataFrame for open cases (where "Case Done" is not 1)
-    open_cases_df = df[df["Case Done"] != 1]
-    if open_cases_df.empty:
+    # Filter for cases that aren't done
+    not_done_df = df[df["Case Done"] != 1]
+    if not_done_df.empty:
         messagebox.showinfo("Open Cases", "All cases are complete!")
         return
 
-    # Create a popup window
+    # Separate into unreviewed (completely empty) and open (started but not done)
+    checkbox_columns = [
+        col for col in df.columns if col not in ["Case ID", "Notes", "Case Done"]
+    ]
+
+    # Unreviewed cases have no checkboxes ticked and no notes
+    unreviewed_mask = (not_done_df[checkbox_columns] != 1).all(axis=1) & (
+        not_done_df["Notes"].isna() | (not_done_df["Notes"] == "")
+    )
+    unreviewed_df = not_done_df[unreviewed_mask]
+    open_df = not_done_df[~unreviewed_mask]
+
+    # Create popup window
     window = tk.Toplevel()
     window.title("Open Cases")
     window.grab_set()
 
-    # Create a Listbox with a Scrollbar
-    listbox = tk.Listbox(window, width=50)
-    listbox.pack(side="left", fill="both", expand=True)
-    scrollbar = ttk.Scrollbar(window, orient="vertical", command=listbox.yview)
-    scrollbar.pack(side="right", fill="y")
-    listbox.config(yscrollcommand=scrollbar.set)
+    # Create notebook for tabs
+    notebook = ttk.Notebook(window)
+    notebook.pack(fill="both", expand=True, padx=5, pady=5)
 
-    # Populate the listbox with case IDs
-    for index, row in open_cases_df.iterrows():
-        case_id = int(row["Case ID"])
-        listbox.insert("end", case_id)
+    # Create tabs for unreviewed and open cases
+    def create_case_list(parent, cases_df, title):
+        frame = ttk.Frame(parent)
+        frame.pack(fill="both", expand=True)
 
-    def on_case_double_click(event):
-        selection = listbox.curselection()
-        if selection:
-            idx = selection[0]
-            selected_case_id = listbox.get(idx)
-            if selected_case_id in case_ids:
-                case_idx = case_ids.index(selected_case_id)
-                # Load the selected case using provided widget variables
-                load_case(
-                    case_idx,
-                    case_label_var,
-                    notes_text,
-                    checkbox_vars,
-                    case_done_var,
-                )
-                window.destroy()
+        # Add count label
+        count_label = ttk.Label(frame, text=f"Total {title}: {len(cases_df)}")
+        count_label.pack(pady=(5, 0))
 
-    listbox.bind("<Double-Button-1>", on_case_double_click)
+        # Create listbox with scrollbar
+        listbox = tk.Listbox(frame, width=50)
+        listbox.pack(side="left", fill="both", expand=True)
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=listbox.yview)
+        scrollbar.pack(side="right", fill="y")
+        listbox.config(yscrollcommand=scrollbar.set)
+
+        # Populate listbox
+        for _, row in cases_df.iterrows():
+            case_id = int(row["Case ID"])
+            listbox.insert("end", case_id)
+
+        # Bind double-click event
+        def on_double_click(event):
+            selection = listbox.curselection()
+            if selection:
+                idx = selection[0]
+                selected_case_id = listbox.get(idx)
+                if selected_case_id in case_ids:
+                    case_idx = case_ids.index(selected_case_id)
+                    load_case(
+                        case_idx,
+                        case_label_var,
+                        notes_text,
+                        checkbox_vars,
+                        case_done_var,
+                    )
+                    window.destroy()
+
+        listbox.bind("<Double-Button-1>", on_double_click)
+        return frame
+
+    # Create and add tabs
+    unreviewed_tab = create_case_list(notebook, unreviewed_df, "Unreviewed")
+    open_tab = create_case_list(notebook, open_df, "Open")
+
+    notebook.add(unreviewed_tab, text=f"Unreviewed ({len(unreviewed_df)})")
+    notebook.add(open_tab, text=f"Open ({len(open_df)})")
