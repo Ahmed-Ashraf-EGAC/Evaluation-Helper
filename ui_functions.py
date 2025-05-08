@@ -87,7 +87,7 @@ def load_case(index, case_label_var, notes_text, checkbox_vars, case_done_var):
     case_done_var.set(int(case_done_val == 1))
 
 
-def save_case(checkbox_vars, notes_text, case_done_var):
+def save_case(checkbox_vars, notes_text, case_done_var, progress_bar, status_label):
     global unsaved_changes, df
     case_id = case_ids[current_index]
     for col in df.columns:
@@ -99,7 +99,7 @@ def save_case(checkbox_vars, notes_text, case_done_var):
     save_dataframe(df)
     unsaved_changes = False
     messagebox.showinfo("Saved", f"Saved changes for Case ID: {case_id}")
-    update_progress()
+    update_progress(progress_bar, status_label)
 
 
 def next_case(load_func):

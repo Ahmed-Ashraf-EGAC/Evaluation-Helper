@@ -117,6 +117,8 @@ def build_ui(root):
     )
     status_label.pack(side=tk.LEFT)
 
+    update_progress(progress_bar, status_label)
+
     # Bottom Controls: "Case Done" Checkbox & Save Button
     case_done_var = tk.IntVar(master=root)
     bottom_frame = ttk.Frame(root)
@@ -128,7 +130,7 @@ def build_ui(root):
     save_button = ttk.Button(
         bottom_frame,
         text="Save",
-        command=lambda: save_case(checkbox_vars, notes_text, case_done_var),
+        command=lambda: save_case(checkbox_vars, notes_text, case_done_var,progress_bar, status_label),
     )
     save_button.pack(side=tk.LEFT, padx=10)
     ToolTip(save_button, "Save current case edits.")
