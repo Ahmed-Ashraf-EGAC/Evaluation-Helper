@@ -283,6 +283,25 @@ def open_settings(root, theme_combobox):
     )
 
 
+def get_progress_message():
+    done_count = (df["Case Done"] == 1).sum()
+    total = len(df)
+    percentage = (done_count / total) * 100 if total > 0 else 0
+
+    if percentage == 0:
+        return "Still a long way to go :("
+    elif percentage < 25:
+        return "Getting the hang of it."
+    elif percentage < 50:
+        return "Making progress!."
+    elif percentage < 75:
+        return "Almost there!"
+    elif percentage < 100:
+        return "Final stretch!!"
+    else:
+        return "Congratulations! All cases are complete!"
+
+
 def view_open_cases(case_label_var, notes_text, checkbox_vars, case_done_var):
     """Display a popup listing all case IDs separated into Open and Unreviewed categories."""
     import tkinter as tk

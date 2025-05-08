@@ -116,6 +116,7 @@ def build_ui(root):
         status_frame, text=f"Cases Done: 0 / {len(load_dataframe())}"
     )
     status_label.pack(side=tk.LEFT)
+    ToolTip(status_label, get_progress_message())
 
     update_progress(progress_bar, status_label)
 
@@ -130,7 +131,9 @@ def build_ui(root):
     save_button = ttk.Button(
         bottom_frame,
         text="Save",
-        command=lambda: save_case(checkbox_vars, notes_text, case_done_var,progress_bar, status_label),
+        command=lambda: save_case(
+            checkbox_vars, notes_text, case_done_var, progress_bar, status_label
+        ),
     )
     save_button.pack(side=tk.LEFT, padx=10)
     ToolTip(save_button, "Save current case edits.")
