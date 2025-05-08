@@ -190,7 +190,10 @@ def build_ui(root):
         ),
     )
     root.bind(
-        "<Control-s>", lambda event: save_case(checkbox_vars, notes_text, case_done_var)
+        "<Control-s>",
+        lambda event: save_case(
+            checkbox_vars, notes_text, case_done_var, progress_bar, status_label
+        ),
     )
 
 
