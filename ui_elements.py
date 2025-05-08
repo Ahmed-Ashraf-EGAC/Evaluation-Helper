@@ -3,18 +3,9 @@ from tkinter import scrolledtext, ttk
 
 from config import default_theme
 from data import load_dataframe
+from global_vars import *
 from tooltip import ToolTip
 from ui_functions import *
-
-# Global widget variables (will be set in build_ui)
-checkbox_vars = {}
-case_done_var = None
-notes_text = None
-theme_combobox = None
-case_label_var = None
-progress_bar = None
-status_label = None
-jump_entry = None
 
 
 def build_ui(root):
@@ -105,7 +96,11 @@ def build_ui(root):
 
     # New Button to view all open (not done) cases
     open_cases_btn = ttk.Button(
-        file_frame, text="View Open Cases", command=view_open_cases
+        file_frame,
+        text="View Open Cases",
+        command=lambda: view_open_cases(
+            case_label_var, notes_text, checkbox_vars, case_done_var
+        ),
     )
     open_cases_btn.pack(side=tk.LEFT, padx=5)
     ToolTip(open_cases_btn, "Display a list of all cases not marked as done.")

@@ -7,6 +7,7 @@ import pandas as pd
 
 from config import *
 from data import load_dataframe, save_dataframe
+from global_vars import *
 
 # Global data variables
 df = load_dataframe()
@@ -282,7 +283,7 @@ def open_settings(root, theme_combobox):
     )
 
 
-def view_open_cases():
+def view_open_cases(case_label_var, notes_text, checkbox_vars, case_done_var):
     """Display a popup listing all case IDs that are not marked done."""
     import tkinter as tk
     from tkinter import messagebox, ttk
@@ -310,33 +311,21 @@ def view_open_cases():
         case_id = int(row["Case ID"])
         listbox.insert("end", case_id)
 
-    def on_case_select(event):
+    def on_case_double_click(event):
         selection = listbox.curselection()
         if selection:
             idx = selection[0]
             selected_case_id = listbox.get(idx)
             if selected_case_id in case_ids:
                 case_idx = case_ids.index(selected_case_id)
-                # Load the selected case
+                # Load the selected case using provided widget variables
                 load_case(
                     case_idx,
-                    globals().get("case_label_var"),
-                    globals().get("notes_text"),
-                    globals().get("checkbox_vars"),
-                    globals().get("case_done_var"),
+                    case_label_var,
+                    notes_text,
+                    checkbox_vars,
+                    case_done_var,
                 )
                 window.destroy()
 
-    def on_case_double_click(event):
-        selection = listbox.curselection()
-        if selection:
-            idx = selection[0]
-            selected_case_id = listbox.get(idx)
-            window.clipboard_clear()
-            window.clipboard_append(str(selected_case_id))
-            messagebox.showinfo(
-                "Copied", f"Case ID {selected_case_id} copied to clipboard!"
-            )
-
-    listbox.bind("<<ListboxSelect>>", on_case_select)
     listbox.bind("<Double-Button-1>", on_case_double_click)
