@@ -174,7 +174,7 @@ def build_ui(root):
 
     # Keyboard Shortcuts
     root.bind(
-        "<Left>",
+        "<Control-Shift-Left>",
         lambda event: prev_case(
             lambda i: load_case(
                 i, case_label_var, notes_text, checkbox_vars, case_done_var
@@ -182,7 +182,7 @@ def build_ui(root):
         ),
     )
     root.bind(
-        "<Right>",
+        "<Control-Shift-Right>",
         lambda event: next_case(
             lambda i: load_case(
                 i, case_label_var, notes_text, checkbox_vars, case_done_var

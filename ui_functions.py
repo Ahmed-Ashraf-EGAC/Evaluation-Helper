@@ -129,8 +129,8 @@ def jump_to_case(jump_entry, load_func):
 def open_files():
     missing = []
     case_id = case_ids[current_index]
-    pdf_path = os.path.join(PDF_FOLDER, f"case_{case_id}.pdf")
-    txt_path = os.path.join(TXT_FOLDER, f"case_{case_id}.txt")
+    pdf_path = os.path.join(PDF_FOLDER, f"{case_id}.pdf")
+    txt_path = os.path.join(TXT_FOLDER, f"{case_id}.txt")
     if os.path.exists(pdf_path):
         webbrowser.open(pdf_path)
     else:
@@ -162,9 +162,9 @@ def on_notes_modified(event, notes_text):
     notes_text.edit_modified(False)
 
 
-def check_unsaved():
+def check_unsaved(closing=False):
     global unsaved_changes, unsaved_warning
-    if unsaved_changes and unsaved_warning:
+    if (unsaved_changes and unsaved_warning) or closing:
         result = messagebox.askyesnocancel(
             "Unsaved Changes", "You have unsaved changes. Would you like to save them?"
         )
@@ -177,7 +177,7 @@ def check_unsaved():
 
 
 def on_closing(root):
-    if check_unsaved():
+    if check_unsaved(closing=True):
         root.destroy()
 
 
@@ -303,15 +303,13 @@ def get_progress_message():
 
 
 def view_open_cases(case_label_var, notes_text, checkbox_vars, case_done_var):
-    """Display a popup listing all case IDs separated into Open and Unreviewed categories."""
+    """Display a popup listing all case IDs separated into Open, Unreviewed, and Done categories."""
     import tkinter as tk
     from tkinter import messagebox, ttk
 
-    # Filter for cases that aren't done
+    # Filter cases by status
+    done_df = df[df["Case Done"] == 1]
     not_done_df = df[df["Case Done"] != 1]
-    if not_done_df.empty:
-        messagebox.showinfo("Open Cases", "All cases are complete!")
-        return
 
     # Separate into unreviewed (completely empty) and open (started but not done)
     checkbox_columns = [
@@ -327,14 +325,14 @@ def view_open_cases(case_label_var, notes_text, checkbox_vars, case_done_var):
 
     # Create popup window
     window = tk.Toplevel()
-    window.title("Open Cases")
+    window.title("Case Status")
     window.grab_set()
 
     # Create notebook for tabs
     notebook = ttk.Notebook(window)
     notebook.pack(fill="both", expand=True, padx=5, pady=5)
 
-    # Create tabs for unreviewed and open cases
+    # Create tabs for unreviewed, open, and done cases
     def create_case_list(parent, cases_df, title):
         frame = ttk.Frame(parent)
         frame.pack(fill="both", expand=True)
@@ -378,6 +376,8 @@ def view_open_cases(case_label_var, notes_text, checkbox_vars, case_done_var):
     # Create and add tabs
     unreviewed_tab = create_case_list(notebook, unreviewed_df, "Unreviewed")
     open_tab = create_case_list(notebook, open_df, "Open")
+    done_tab = create_case_list(notebook, done_df, "Done")
 
     notebook.add(unreviewed_tab, text=f"Unreviewed ({len(unreviewed_df)})")
     notebook.add(open_tab, text=f"Open ({len(open_df)})")
+    notebook.add(done_tab, text=f"Done ({len(done_df)})")
