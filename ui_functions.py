@@ -14,6 +14,7 @@ df = load_dataframe()
 case_ids = df["Case ID"].tolist()
 current_index = 0
 unsaved_changes = False
+loading_case = False  # Add a flag to track when loading is happening
 
 
 def change_theme(event, theme_combobox, style, root, notes_text):
@@ -66,11 +67,15 @@ def create_dark_theme(style):
 
 
 def load_case(index, case_label_var, notes_text, checkbox_vars, case_done_var):
-    global current_index, unsaved_changes, df
+    global current_index, unsaved_changes, df, loading_case
     if index < 0 or index >= len(case_ids):
         return
     current_index = index
+
+    # Set the loading flag to prevent marking changes during loading
+    loading_case = True
     unsaved_changes = False
+
     case_id = case_ids[current_index]
     case_label_var.set(f"Case ID: {case_id}")
     row = df.loc[df["Case ID"] == case_id].iloc[0]
@@ -86,6 +91,9 @@ def load_case(index, case_label_var, notes_text, checkbox_vars, case_done_var):
     case_done_val = row.get("Case Done", "")
     case_done_var.set(int(case_done_val == 1))
 
+    # Done loading, reset the flag
+    loading_case = False
+
 
 def save_case(checkbox_vars, notes_text, case_done_var, progress_bar, status_label):
     global unsaved_changes, df
@@ -98,7 +106,11 @@ def save_case(checkbox_vars, notes_text, case_done_var, progress_bar, status_lab
     df.loc[df["Case ID"] == case_id, "Case Done"] = 1 if case_done_var.get() else ""
     save_dataframe(df)
     unsaved_changes = False
-    messagebox.showinfo("Saved", f"Saved changes for Case ID: {case_id}")
+
+    # Replace messagebox with toast notification
+    root = notes_text.winfo_toplevel()  # Get the root window from any widget
+    show_toast(root, f"Saved changes for Case ID: {case_id}")
+
     update_progress(progress_bar, status_label)
 
 
@@ -152,13 +164,15 @@ def open_files():
 
 
 def mark_unsaved(*args):
-    global unsaved_changes
-    unsaved_changes = True
+    global unsaved_changes, loading_case
+    if not loading_case:  # Only mark as unsaved if we're not loading a case
+        unsaved_changes = True
 
 
 def on_notes_modified(event, notes_text):
-    global unsaved_changes
-    unsaved_changes = True
+    global unsaved_changes, loading_case
+    if not loading_case:  # Only mark as unsaved if we're not loading a case
+        unsaved_changes = True
     notes_text.edit_modified(False)
 
 
@@ -381,3 +395,49 @@ def view_open_cases(case_label_var, notes_text, checkbox_vars, case_done_var):
     notebook.add(unreviewed_tab, text=f"Unreviewed ({len(unreviewed_df)})")
     notebook.add(open_tab, text=f"Open ({len(open_df)})")
     notebook.add(done_tab, text=f"Done ({len(done_df)})")
+
+
+# Add this new function for toast notifications
+def show_toast(root, message, duration=2000, bg_color="#4CAF50", fg_color="white"):
+    """Show a toast notification that automatically disappears after duration (ms)"""
+    # Create a toplevel window without decorations
+    toast = tk.Toplevel(root)
+    toast.overrideredirect(True)  # Remove window decorations
+
+    # Create a frame with padding and background color
+    frame = tk.Frame(toast, bg=bg_color, padx=15, pady=10)
+    frame.pack(fill=tk.BOTH, expand=True)
+
+    # Add the message
+    label = tk.Label(
+        frame,
+        text=message,
+        bg=bg_color,
+        fg=fg_color,
+        font=("Arial", 11),
+        wraplength=300,
+    )
+    label.pack(pady=5)
+
+    # Position the toast at the bottom center of the root window
+    toast.update_idletasks()
+    root_x = root.winfo_x()
+    root_y = root.winfo_y()
+    root_width = root.winfo_width()
+    root_height = root.winfo_height()
+
+    toast_width = toast.winfo_width()
+    toast_height = toast.winfo_height()
+
+    x = root_x + (root_width // 2) - (toast_width // 2)
+    y = root_y + root_height - toast_height - 20
+
+    toast.geometry(f"+{x}+{y}")
+
+    # Bring toast to front
+    toast.lift()
+
+    # Set a timer to destroy the toast
+    toast.after(duration, toast.destroy)
+
+    return toast
