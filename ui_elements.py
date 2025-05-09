@@ -303,11 +303,22 @@ def build_ui(root):
         wrap=tk.WORD,
         width=60,
         height=15,
-        undo=True,  # Increased height more
+        undo=True,
     )
-    notes_text.pack(
-        fill=tk.BOTH, expand=True, padx=0, pady=(5, 0)
-    )  # Remove bottom padding
+    notes_text.pack(fill=tk.BOTH, expand=True, padx=0, pady=(5, 0))
+
+    # Add explicit paste binding
+    notes_text.bind("<Control-v>", lambda event: paste_to_notes(event, notes_text))
+
+    # Create context menu with paste option
+    notes_context_menu = tk.Menu(notes_text, tearoff=0)
+    notes_context_menu.add_command(
+        label="Paste", command=lambda: paste_from_clipboard(notes_text)
+    )
+    notes_text.bind(
+        "<Button-3>",
+        lambda event: show_context_menu(event, notes_text, notes_context_menu),
+    )
 
     # Configure text appearance based on theme
     if theme_combobox.get() == "dark":

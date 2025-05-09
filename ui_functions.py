@@ -441,3 +441,42 @@ def show_toast(root, message, duration=2000, bg_color="#4CAF50", fg_color="white
     toast.after(duration, toast.destroy)
 
     return toast
+
+
+def paste_to_notes(event, text_widget):
+    """Handle paste operation from keyboard shortcut"""
+    try:
+        text_widget.delete("sel.first", "sel.last")
+    except tk.TclError:
+        # No selection to delete
+        pass
+    text_widget.insert(tk.INSERT, text_widget.clipboard_get())
+    mark_unsaved()  # Mark as unsaved after pasting
+    return "break"  # Prevent default paste behavior
+
+
+def paste_from_clipboard(text_widget):
+    """Paste text from clipboard at current position"""
+    try:
+        clip_text = text_widget.clipboard_get()
+        try:
+            text_widget.delete("sel.first", "sel.last")
+        except tk.TclError:
+            # No selection to delete
+            pass
+        text_widget.insert(tk.INSERT, clip_text)
+        mark_unsaved()  # Mark as unsaved after pasting
+    except tk.TclError:
+        # Clipboard is empty or contains non-text data
+        pass
+
+
+def show_context_menu(event, text_widget, menu):
+    """Show context menu at mouse position"""
+    # Update paste command availability based on clipboard content
+    try:
+        text_widget.clipboard_get()
+        menu.entryconfig("Paste", state="normal")
+    except tk.TclError:
+        menu.entryconfig("Paste", state="disabled")
+    menu.tk_popup(event.x_root, event.y_root)
