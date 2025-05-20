@@ -202,11 +202,21 @@ def update_progress(progress_bar, status_label):
     progress_bar["value"] = done_count
     status_label.config(text=f"Cases Done: {done_count} / {total}")
 
+    # Destroy existing tooltip if it exists
+    if hasattr(status_label, "_tooltip"):
+        status_label._tooltip.destroy()
+
+    # Create new tooltip
+    from tooltip import ToolTip
+
+    ToolTip(status_label, get_progress_message())
+
 
 def copy_case_id(case_label_var, root):
     case_id_text = case_label_var.get().replace("Case ID: ", "")
     root.clipboard_clear()
     root.clipboard_append(case_id_text)
+    show_toast(root, f"Copied Case ID: {case_id_text}")
 
 
 def open_settings(root, theme_combobox):
