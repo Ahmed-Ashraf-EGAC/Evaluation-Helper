@@ -4,3 +4,4 @@ txts/*
 .qodo
 __pycache__/*
 config.json
+itr*
