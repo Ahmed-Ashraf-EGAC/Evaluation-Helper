@@ -66,7 +66,14 @@ def create_dark_theme(style):
         pass
 
 
-def load_case(index, case_label_var, notes_text, checkbox_vars, case_done_var):
+def load_case(
+    index,
+    case_label_var,
+    notes_text,
+    checkbox_vars,
+    case_done_var,
+    notes_text_judge=None,
+):
     global current_index, unsaved_changes, df, loading_case
     if index < 0 or index >= len(case_ids):
         return
@@ -80,7 +87,7 @@ def load_case(index, case_label_var, notes_text, checkbox_vars, case_done_var):
     case_label_var.set(f"Case ID: {case_id}")
     row = df.loc[df["Case ID"] == case_id].iloc[0]
     for col in df.columns:
-        if col in ["Case ID", "Notes", "Case Done"]:
+        if col in ["Case ID", "Notes", "Case Done", "Judge Notes"]:
             continue
         checkbox_vars[col].set(int(row[col] == 1))
     notes_val = row.get("Notes", "")
@@ -88,6 +95,15 @@ def load_case(index, case_label_var, notes_text, checkbox_vars, case_done_var):
         notes_val = ""
     notes_text.delete("1.0", tk.END)
     notes_text.insert(tk.END, str(notes_val))
+
+    # Load Judge Notes if widget is provided
+    if notes_text_judge is not None:
+        judge_val = row.get("Judge Notes", "")
+        if pd.isna(judge_val) or str(judge_val).lower() == "nan":
+            judge_val = ""
+        notes_text_judge.delete("1.0", tk.END)
+        notes_text_judge.insert(tk.END, str(judge_val))
+
     case_done_val = row.get("Case Done", "")
     case_done_var.set(int(case_done_val == 1))
 
@@ -95,15 +111,32 @@ def load_case(index, case_label_var, notes_text, checkbox_vars, case_done_var):
     loading_case = False
 
 
-def save_case(checkbox_vars, notes_text, case_done_var, progress_bar, status_label):
+def save_case(
+    checkbox_vars,
+    notes_text,
+    case_done_var,
+    progress_bar,
+    status_label,
+    notes_text_judge=None,
+):
     global unsaved_changes, df
     case_id = case_ids[current_index]
     for col in df.columns:
-        if col in ["Case ID", "Notes", "Case Done"]:
+        if col in ["Case ID", "Notes", "Case Done", "Judge Notes"]:
             continue
         df.loc[df["Case ID"] == case_id, col] = 1 if checkbox_vars[col].get() else ""
     df.loc[df["Case ID"] == case_id, "Notes"] = notes_text.get("1.0", tk.END).strip()
     df.loc[df["Case ID"] == case_id, "Case Done"] = 1 if case_done_var.get() else ""
+
+    # Save Judge Notes if widget is provided
+    if notes_text_judge is not None:
+        # Add the column if it doesn't exist
+        if "Judge Notes" not in df.columns:
+            df["Judge Notes"] = ""
+        df.loc[df["Case ID"] == case_id, "Judge Notes"] = notes_text_judge.get(
+            "1.0", tk.END
+        ).strip()
+
     save_dataframe(df)
     unsaved_changes = False
 
