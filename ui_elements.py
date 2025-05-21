@@ -9,7 +9,7 @@ from ui_functions import *
 
 
 def build_ui(root):
-    global notes_text, theme_combobox, case_label_var, progress_bar, status_label, jump_entry, checkbox_vars, case_done_var, main_canvas, main_frame, checkbox_canvas, checkbox_frame
+    global notes_text, notes_text_judge, theme_combobox, case_label_var, progress_bar, status_label, jump_entry, checkbox_vars, case_done_var, main_canvas, main_frame, checkbox_canvas, checkbox_frame
 
     style = ttk.Style(root)
     style.theme_use(default_theme)
@@ -81,7 +81,9 @@ def build_ui(root):
     theme_combobox.pack(side=tk.LEFT, padx=5)
     theme_combobox.bind(
         "<<ComboboxSelected>>",
-        lambda event: change_theme(event, theme_combobox, style, root, notes_text),
+        lambda event: change_theme(
+            event, theme_combobox, style, root, [notes_text, notes_text_judge]
+        ),
     )
 
     # Now that theme_combobox is defined, set up the menu.
@@ -101,7 +103,12 @@ def build_ui(root):
         text="<< Previous",
         command=lambda: prev_case(
             lambda i: load_case(
-                i, case_label_var, notes_text, checkbox_vars, case_done_var
+                i,
+                case_label_var,
+                notes_text,
+                checkbox_vars,
+                case_done_var,
+                notes_text_judge,
             )
         ),
     )
@@ -112,7 +119,12 @@ def build_ui(root):
         text="Next >>",
         command=lambda: next_case(
             lambda i: load_case(
-                i, case_label_var, notes_text, checkbox_vars, case_done_var
+                i,
+                case_label_var,
+                notes_text,
+                checkbox_vars,
+                case_done_var,
+                notes_text_judge,
             )
         ),
     )
@@ -130,7 +142,12 @@ def build_ui(root):
         command=lambda: jump_to_case(
             jump_entry,
             lambda i: load_case(
-                i, case_label_var, notes_text, checkbox_vars, case_done_var
+                i,
+                case_label_var,
+                notes_text,
+                checkbox_vars,
+                case_done_var,
+                notes_text_judge,
             ),
         ),
     )
@@ -182,7 +199,12 @@ def build_ui(root):
         bottom_frame,
         text="Save",
         command=lambda: save_case(
-            checkbox_vars, notes_text, case_done_var, progress_bar, status_label
+            checkbox_vars,
+            notes_text,
+            case_done_var,
+            progress_bar,
+            status_label,
+            notes_text_judge,
         ),
     )
     save_button.pack(side=tk.LEFT, padx=10)
@@ -290,14 +312,21 @@ def build_ui(root):
         cb.pack(anchor="w")
         checkbox_vars[col] = var
 
-    # Notes Area that fills remaining window space - key modifications here
-    notes_frame = ttk.Frame(
-        main_frame, padding=(10, 10, 10, 0)
-    )  # Remove bottom padding
-    notes_frame.pack(pady=(10, 0), fill=tk.BOTH, expand=True)  # Remove bottom padding
-    ttk.Label(notes_frame, text="Notes:").pack(anchor="w")
+    # --- Notes Area: Make AI Notes and Judge Notes side by side, equally sized, and expandable ---
 
-    # Create ScrolledText with a weight to make it expand more aggressively
+    # Parent frame for both notes sections
+    notes_parent_frame = ttk.Frame(main_frame, padding=(10, 10, 10, 0))
+    notes_parent_frame.pack(pady=(10, 0), fill=tk.BOTH, expand=True)
+
+    # Configure grid for two columns, equal weight
+    notes_parent_frame.columnconfigure(0, weight=1)
+    notes_parent_frame.columnconfigure(1, weight=1)
+    notes_parent_frame.rowconfigure(0, weight=1)
+
+    # AI Notes Frame
+    notes_frame = ttk.Frame(notes_parent_frame)
+    notes_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+    ttk.Label(notes_frame, text="AI Notes:").pack(anchor="w")
     notes_text = scrolledtext.ScrolledText(
         notes_frame,
         wrap=tk.WORD,
@@ -307,31 +336,65 @@ def build_ui(root):
     )
     notes_text.pack(fill=tk.BOTH, expand=True, padx=0, pady=(5, 0))
 
+    # Judge Notes Frame
+    notes_frame_judge = ttk.Frame(notes_parent_frame)
+    notes_frame_judge.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+    ttk.Label(notes_frame_judge, text="Judge Notes:").pack(anchor="w")
+    notes_text_judge = scrolledtext.ScrolledText(
+        notes_frame_judge,
+        wrap=tk.WORD,
+        width=60,
+        height=15,
+        undo=True,
+    )
+    notes_text_judge.pack(fill=tk.BOTH, expand=True, padx=0, pady=(5, 0))
+
     # Add explicit paste binding
     notes_text.bind("<Control-v>", lambda event: paste_to_notes(event, notes_text))
 
-    # Create context menu with paste option
-    notes_context_menu = tk.Menu(notes_text, tearoff=0)
-    notes_context_menu.add_command(
+    # Create context menu with paste option for AI Notes
+    ai_notes_context_menu = tk.Menu(notes_text, tearoff=0)
+    ai_notes_context_menu.add_command(
         label="Paste", command=lambda: paste_from_clipboard(notes_text)
     )
     notes_text.bind(
         "<Button-3>",
-        lambda event: show_context_menu(event, notes_text, notes_context_menu),
+        lambda event: show_context_menu(event, notes_text, ai_notes_context_menu),
+    )
+
+    # Create context menu with paste option for Judge Notes
+    judge_notes_context_menu = tk.Menu(notes_text_judge, tearoff=0)
+    judge_notes_context_menu.add_command(
+        label="Paste", command=lambda: paste_from_clipboard(notes_text_judge)
+    )
+    notes_text_judge.bind(
+        "<Button-3>",
+        lambda event: show_context_menu(
+            event, notes_text_judge, judge_notes_context_menu
+        ),
     )
 
     # Configure text appearance based on theme
     if theme_combobox.get() == "dark":
         notes_text.configure(bg="#3e3e3e", fg="#ffffff", insertbackground="#ffffff")
+        notes_text_judge.configure(
+            bg="#3e3e3e", fg="#ffffff", insertbackground="#ffffff"
+        )
     else:
         notes_text.configure(bg="white", fg="black", insertbackground="black")
+        notes_text_judge.configure(bg="white", fg="black", insertbackground="black")
 
     # Keyboard Shortcuts
     root.bind(
         "<Control-Shift-Left>",
         lambda event: prev_case(
             lambda i: load_case(
-                i, case_label_var, notes_text, checkbox_vars, case_done_var
+                i,
+                case_label_var,
+                notes_text,
+                checkbox_vars,
+                case_done_var,
+                notes_text_judge,
             )
         ),
     )
@@ -339,14 +402,24 @@ def build_ui(root):
         "<Control-Shift-Right>",
         lambda event: next_case(
             lambda i: load_case(
-                i, case_label_var, notes_text, checkbox_vars, case_done_var
+                i,
+                case_label_var,
+                notes_text,
+                checkbox_vars,
+                case_done_var,
+                notes_text_judge,
             )
         ),
     )
     root.bind(
         "<Control-s>",
         lambda event: save_case(
-            checkbox_vars, notes_text, case_done_var, progress_bar, status_label
+            checkbox_vars,
+            notes_text,
+            case_done_var,
+            progress_bar,
+            status_label,
+            notes_text_judge,
         ),
     )
 
@@ -431,15 +504,19 @@ def on_window_resize(event=None):
                 )  # 1/4 of window height, min 150px
                 checkbox_canvas.configure(height=checkbox_height)
 
-            # Get the notes text widget and make sure it expands properly
+            # Handle both notes widgets
             if "notes_text" in globals():
                 notes_widget = globals()["notes_text"]
-                # Calculate available height and adjust notes height
                 avail_height = root_window.winfo_height() - notes_widget.winfo_y() - 20
-                if avail_height > 100:  # Ensure reasonable minimum height
+                if avail_height > 100:
                     notes_widget.configure(height=max(15, int(avail_height / 20)))
 
-            # Use update_idletasks to process layout changes
+            if "notes_text_judge" in globals():
+                judge_widget = globals()["notes_text_judge"]
+                avail_height = root_window.winfo_height() - judge_widget.winfo_y() - 20
+                if avail_height > 100:
+                    judge_widget.configure(height=max(15, int(avail_height / 20)))
+
             root_window.update_idletasks()
     finally:
         on_window_resize.processing = False
@@ -467,6 +544,7 @@ def start_app():
         globals().get("notes_text"),
         globals().get("checkbox_vars"),
         globals().get("case_done_var"),
+        globals().get("notes_text_judge"),  # Add judge notes widget
     )
 
     # Force a resize event after everything else is initialized

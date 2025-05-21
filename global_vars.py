@@ -7,3 +7,4 @@ case_label_var = None
 progress_bar = None
 status_label = None
 jump_entry = None
+notes_text_judge = None
